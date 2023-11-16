@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ror-app
+  name: ror-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ror-app
+  template:
+    metadata:
+      labels:
+        app: ror-app
+    spec:
+      containers:
+      - name: ror-app
+        image: 076992707442.dkr.ecr.us-east-1.amazonaws.com/rails_app:latest
+        env:
+        - name: RDS_DB_NAME
+          value: "eks-ror-db"
+        - name: RDS_USERNAME
+          value: "dbadmin"
+        - name: RDS_PASSWORD
+          value: "dbpassword" 
+        - name: RDS_HOSTNAME
+          value: "eks-ror-db.cq6ilafaicfb.us-east-1.rds.amazonaws.com"
+        - name: RDS_PORT
+          value: "5432"
+        - name: S3_BUCKET_NAME
+          value: "ror-eks-test"
+        - name: S3_REGION_NAME
+          value: "us-east-1"
+        - name: LB_ENDPOINT
+          value: "k8s-default-roringre-90533e22fb-1491536153.us-east-1.elb.amazonaws.com"           
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+          name: http
+          protocol: TCP

@@ -29,8 +29,6 @@ module "vpc" {
 
   enable_nat_gateway   = true
   single_nat_gateway   = true
-  enable_dns_hostnames = true
-  map_public_ip_on_launch = true
 
   public_subnet_tags = {
     "kubernetes.io/cluster/${local.cluster_name}" = "shared"
@@ -51,7 +49,7 @@ module "eks" {
   cluster_version = "1.27"
 
   vpc_id                         = module.vpc.vpc_id
-  subnet_ids                     = module.vpc.public_subnets
+  subnet_ids                     = module.vpc.private_subnets
   cluster_endpoint_public_access = true
 
   eks_managed_node_group_defaults = {
@@ -60,7 +58,7 @@ module "eks" {
   }
 
   eks_managed_node_groups = {
-    one = {
+    genetal = {
       name = "node-group-1"
 
       instance_types = ["t3.small"]
@@ -73,13 +71,14 @@ module "eks" {
 }
 
 locals {
-  eks_cluster_name = "module.eks.cluster_id"
+  eks_cluster_name = "module.eks.cluster_name"
+  oidc_arn         = module.eks.oidc_provider_arn
+  oidc_provider    = module.eks.oidc_provider
+  
 }
 
-
-
 data "http" "lbc_iam_policy" {
-  url = "https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/docs/install/iam_policy.json"
+  url = "https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.5.4/docs/install/iam_policy.json"
 
   # Optional request headers
   request_headers = {
@@ -115,12 +114,12 @@ resource "aws_iam_role" "lbc_iam_role" {
         Effect = "Allow"
         Sid    = ""
         Principal = {
-          Federated = "module.eks.oidc_provider_arn"
+          Federated = "${local.oidc_arn}"
         }
         Condition = {
           StringEquals = {
-            "module.eks.oidc_provider_arn:aud" : "sts.amazonaws.com",
-            "module.eks.oidc_provider_arn:sub" : "system:serviceaccount:kube-system:aws-load-balancer-controller"
+            "${local.oidc_provider}:aud" : "sts.amazonaws.com",
+            "${local.oidc_provider}:sub" : "system:serviceaccount:kube-system:aws-load-balancer-controller"
           }
         }
       },
@@ -188,38 +187,21 @@ resource "helm_release" "loadbalancer_controller" {
 
   set {
     name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
-    value = "aws_iam_role.lbc_iam_role.arn"
+    value = aws_iam_role.lbc_iam_role.arn
   }
 
   set {
     name  = "vpcId"
-    value = "module.vpc.vpc_id"
+    value = module.vpc.vpc_id
   }
 
   set {
     name  = "region"
-    value = "var.region"
+    value = var.region
   }
 
   set {
     name  = "clusterName"
-    value = "module.eks.cluster_id"
-  }
-
-}
-
-
-# Resource: Kubernetes Ingress Class
-resource "kubernetes_ingress_class_v1" "ingress_class_default" {
-  depends_on = [helm_release.loadbalancer_controller]
-  metadata {
-    name = "my-aws-ingress-class"
-    annotations = {
-      "ingressclass.kubernetes.io/is-default-class" = "true"
-    }
-  }
-  spec {
-    controller = "ingress.k8s.aws/alb"
+    value = module.eks.cluster_name
   }
 }
-

@@ -35,5 +35,5 @@ resource "aws_security_group" "rds_security_group" {
 
 resource "aws_db_subnet_group" "rails_db_subnet_group" {
   name       = "rails-db-subnet-group"
-  subnet_ids = module.vpc.public_subnets
+  subnet_ids = module.vpc.private_subnets
 }

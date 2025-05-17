@@ -25,7 +25,7 @@ spec:
         - name: RDS_PASSWORD
           value: "dbpassword" 
         - name: RDS_HOSTNAME
-          value: "eks-ror-db.cq6ilafaicfb.us-east-1.rds.amazonaws.com"
+          value: "eks-ror-db.cq6ilafaicfb.us-east-1.rdds.amazonaws.com"
         - name: RDS_PORT
           value: "5432"
         - name: S3_BUCKET_NAME

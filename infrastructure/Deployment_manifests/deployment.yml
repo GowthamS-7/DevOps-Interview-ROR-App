@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: ror-app
-        image: 076992707442.dkr.ecr.us-east-1.amazonaws.com/rails_app:latest
+        image: 076992707442.dkr.ecr.us-east-1.amazonaws.com/rails-app:latest
         env:
         - name: RDS_DB_NAME
           value: "eks-ror-db"
